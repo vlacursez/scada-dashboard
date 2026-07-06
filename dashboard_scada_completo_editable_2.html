@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Red SCADA — PROMIGAS / TRANSMETANO · Consulta y Gestión de IPs</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1117;--bg2:#161b24;--bg3:#1e2433;--bg4:#252d3d;
+  --brd:#2a3347;--brd2:#3a4a6b;
+  --tx:#d0d8e8;--tx2:#8a96b0;--tx3:#5a6580;
+  --ac:#4f8ef7;--ac2:#1a56d6;--ac3:#3a7be0;
+  --ok:#2ecc71;--ok2:#1a7a44;
+  --wn:#f0a500;--wn2:#8a5e00;
+  --er:#e8445a;--er2:#8a1a28;
+  --or:#f08030;--or2:#7a4010;
+  --pu:#9b6dfa;--pu2:#4a2a9a;
+  --te:#20d486;--pk:#f07ac8;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);
+     font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+     font-size:14px;line-height:1.55}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px}
+
+/* ── HEADER ─────────────────────────────────────────────── */
+.hdr{
+  background:linear-gradient(135deg,#080c14 0%,#101828 60%,#0a1220 100%);
+  border-bottom:1px solid var(--brd);padding:1.1rem 2rem;
+  position:sticky;top:0;z-index:300;
+  box-shadow:0 2px 24px rgba(0,0,0,.55)
+}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;
+        gap:1rem;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:.9rem}
+.brand-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--ac2),var(--ac));
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;flex-shrink:0;box-shadow:0 4px 12px rgba(79,142,247,.3)}
+.brand h1{font-size:1.15rem;font-weight:700;color:#fff;letter-spacing:-.3px;line-height:1.2}
+.brand h1 span{color:var(--ac);font-size:.8rem;font-weight:400;display:block;
+               margin-top:.1rem;letter-spacing:0}
+.hdr-pills{display:flex;gap:.4rem;flex-wrap:wrap}
+.pill{padding:.22rem .65rem;border-radius:20px;font-size:.65rem;
+      font-weight:700;letter-spacing:.3px;border:1px solid;white-space:nowrap;
+      cursor:default}
+.p-g{background:rgba(46,204,113,.1);color:var(--te);border-color:rgba(46,204,113,.3)}
+.p-b{background:rgba(79,142,247,.1);color:var(--ac);border-color:rgba(79,142,247,.3)}
+.p-o{background:rgba(240,128,48,.1);color:var(--or);border-color:rgba(240,128,48,.3)}
+
+/* ── COUNTERS BAR ───────────────────────────────────────── */
+.ctr-bar{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  gap:0;border-bottom:1px solid var(--brd)
+}
+.ctr{
+  padding:.8rem 1.2rem;text-align:center;border-right:1px solid var(--brd);
+  position:relative;cursor:default;transition:background .2s
+}
+.ctr:last-child{border-right:none}
+.ctr:hover{background:var(--bg2)}
+.ctr-n{font-size:1.6rem;font-weight:800;color:#fff;line-height:1;
+        font-variant-numeric:tabular-nums}
+.ctr-l{font-size:.6rem;color:var(--tx2);text-transform:uppercase;
+        letter-spacing:.5px;margin-top:.25rem}
+.ctr-accent{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+             width:0;height:2px;background:var(--ac);
+             border-radius:2px 2px 0 0;transition:width .3s}
+.ctr:hover .ctr-accent{width:60%}
+
+/* ── SEARCH GLOBAL ──────────────────────────────────────── */
+.srch-global{
+  padding:.7rem 2rem;background:var(--bg2);border-bottom:1px solid var(--brd);
+  display:flex;align-items:center;gap:.7rem
+}
+.srch-global input{
+  flex:1;background:var(--bg3);border:1px solid var(--brd);border-radius:7px;
+  padding:.52rem 1rem .52rem 2.4rem;color:var(--tx);font-size:.84rem;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235a6580' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:.75rem center
+}
+.srch-global input:focus{
+  outline:none;border-color:var(--ac);
+  box-shadow:0 0 0 3px rgba(79,142,247,.12)
+}
+.srch-global span{font-size:.75rem;color:var(--tx2);white-space:nowrap}
+
+/* ── EXPORT BAR ─────────────────────────────────────────── */
+.xbar{
+  display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;
+  padding:.55rem 2rem;background:var(--bg);border-bottom:1px solid var(--brd)
+}
+.xbar-label{font-size:.68rem;color:var(--tx3);text-transform:uppercase;
+             letter-spacing:.4px;margin-right:.2rem}
+
+/* ── TABS ───────────────────────────────────────────────── */
+.tabs-wrap{
+  background:var(--bg);border-bottom:1px solid var(--brd);
+  padding:0 2rem;position:sticky;top:65px;z-index:200;
+  box-shadow:0 4px 16px rgba(0,0,0,.25)
+}
+.tabs{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{height:0}
+.tab-btn{
+  background:none;border:none;border-bottom:2px solid transparent;
+  padding:.65rem 1.1rem;cursor:pointer;font-weight:600;color:var(--tx2);
+  font-size:.8rem;white-space:nowrap;transition:all .2s;position:relative;top:1px;
+  display:flex;align-items:center;gap:.4rem
+}
+.tab-btn:hover{color:var(--tx)}
+.tab-btn.active{color:var(--ac);border-bottom-color:var(--ac)}
+.tab-count{
+  background:var(--bg3);color:var(--tx2);font-size:.62rem;
+  padding:.08rem .38rem;border-radius:10px;font-weight:700;
+  transition:all .2s
+}
+.tab-btn.active .tab-count{background:rgba(79,142,247,.2);color:var(--ac)}
+
+/* ── TAB CONTENT ────────────────────────────────────────── */
+.tab-cnt{display:none;padding:1.4rem 2rem;animation:fi .15s ease}
+.tab-cnt.active{display:block}
+@keyframes fi{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── SECTION ────────────────────────────────────────────── */
+.sec{
+  background:var(--bg2);border:1px solid var(--brd);border-radius:10px;
+  padding:1.2rem 1.4rem;margin-bottom:1rem
+}
+.sec-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1rem;flex-wrap:wrap;gap:.5rem
+}
+.sec-title{
+  font-size:.88rem;font-weight:700;color:#fff;
+  display:flex;align-items:center;gap:.5rem
+}
+.tag{
+  display:inline-block;padding:.1rem .42rem;border-radius:8px;
+  font-size:.62rem;font-weight:700;letter-spacing:.2px
+}
+.tag-ok{background:rgba(46,204,113,.15);color:var(--te)}
+.tag-warn{background:rgba(240,165,0,.15);color:var(--wn)}
+.tag-err{background:rgba(232,68,90,.15);color:var(--er)}
+
+/* ── TOOLBAR ────────────────────────────────────────────── */
+.tb{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.7rem}
+.si{
+  flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--brd);
+  border-radius:7px;padding:.5rem .9rem;color:var(--tx);font-size:.82rem;
+  transition:border-color .2s,box-shadow .2s
+}
+.si:focus{
+  outline:none;border-color:var(--ac);
+  box-shadow:0 0 0 3px rgba(79,142,247,.12)
+}
+.sl{
+  background:var(--bg3);border:1px solid var(--brd);border-radius:7px;
+  padding:.5rem .9rem;color:var(--tx);font-size:.82rem;cursor:pointer;
+  min-width:130px
+}
+.sl:focus{outline:none;border-color:var(--ac)}
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn{
+  padding:.45rem .9rem;border-radius:7px;border:none;cursor:pointer;
+  font-weight:600;font-size:.77rem;transition:all .2s;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:.35rem
+}
+.btn-p{background:var(--ac2);color:#fff}.btn-p:hover{background:var(--ac3);transform:translateY(-1px)}
+.btn-s{background:rgba(46,204,113,.13);color:var(--ok);border:1px solid rgba(46,204,113,.3)}.btn-s:hover{background:rgba(46,204,113,.25)}
+.btn-w{background:rgba(240,165,0,.13);color:var(--wn);border:1px solid rgba(240,165,0,.3)}.btn-w:hover{background:rgba(240,165,0,.25)}
+.btn-g{background:transparent;color:var(--tx2);border:1px solid var(--brd)}.btn-g:hover{background:var(--bg3);color:var(--tx)}
+.btn-d{background:rgba(232,68,90,.13);color:var(--er);border:1px solid rgba(232,68,90,.3)}.btn-d:hover{background:rgba(232,68,90,.25)}
+
+/* ── RESULT INFO ────────────────────────────────────────── */
+.ri{
+  font-size:.72rem;color:var(--tx2);margin-bottom:.6rem;
+  display:flex;align-items:center;gap:.5rem
+}
+.ri strong{color:var(--ac)}
+.ri-sep{width:1px;height:12px;background:var(--brd)}
+
+/* ── TABLE ──────────────────────────────────────────────── */
+.tw{overflow-x:auto;border:1px solid var(--brd);border-radius:8px;
+    max-height:60vh;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+thead{background:var(--bg3);position:sticky;top:0;z-index:5}
+th{
+  padding:.6rem .85rem;text-align:left;font-weight:700;font-size:.67rem;
+  text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);
+  border-right:1px solid var(--brd);white-space:nowrap;cursor:default
+}
+th:last-child{border-right:none}
+td{padding:.52rem .85rem;border-bottom:1px solid var(--brd);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:rgba(79,142,247,.06)}
+.no-res td{text-align:center;padding:3rem;color:var(--tx3);font-style:italic;font-size:.82rem}
+
+/* ── CELL TYPES ─────────────────────────────────────────── */
+.ip{
+  font-family:'Cascadia Code','Fira Code','Courier New',monospace;
+  color:var(--ac);font-size:.78rem;font-weight:600;white-space:nowrap
+}
+.ip2{font-family:monospace;color:var(--tx2);font-size:.75rem;white-space:nowrap}
+.id-t{
+  font-family:monospace;background:rgba(240,128,48,.12);color:var(--or);
+  padding:.18rem .5rem;border-radius:5px;font-size:.74rem;
+  font-weight:700;white-space:nowrap
+}
+.n{color:var(--tx3);font-size:.68rem;font-variant-numeric:tabular-nums}
+
+/* ── EMPRESA BADGES ─────────────────────────────────────── */
+.be{display:inline-block;padding:.15rem .52rem;border-radius:10px;
+    font-size:.66rem;font-weight:700;white-space:nowrap;letter-spacing:.1px}
+.pm{background:rgba(79,142,247,.15);color:#7ab3ff}
+.tm{background:rgba(155,109,250,.15);color:#b89dff}
+.sp{background:rgba(46,204,113,.15);color:#5de8a0}
+.po{background:rgba(240,165,0,.15);color:#ffc940}
+.ps{background:rgba(240,128,48,.15);color:#ffaa60}
+
+/* ── PROVEEDOR BADGES ───────────────────────────────────── */
+.bt{background:rgba(247,122,200,.13);color:#f9a0d8}
+.bc{background:rgba(232,68,90,.13);color:#ff8096}
+.bm{background:rgba(46,204,113,.13);color:var(--te)}
+.bl{background:rgba(155,109,250,.13);color:#b89dff}
+.bx{background:rgba(90,101,128,.13);color:var(--tx2)}
+
+/* ── TIPO DISPOSITIVO ───────────────────────────────────── */
+.tp{padding:.13rem .42rem;border-radius:5px;font-size:.68rem;font-weight:700}
+.tp-rtu{background:rgba(232,68,90,.12);color:#ff8096}
+.tp-pc{background:rgba(79,142,247,.12);color:#7ab3ff}
+.tp-rad{background:rgba(46,204,113,.12);color:var(--te)}
+.tp-plc{background:rgba(155,109,250,.12);color:#b89dff}
+.tp-con{background:rgba(240,128,48,.12);color:#ffaa60}
+.tp-usm{background:rgba(32,212,134,.12);color:var(--te)}
+.tp-def{background:rgba(90,101,128,.12);color:var(--tx2)}
+
+/* ── ACTION BUTTONS ─────────────────────────────────────── */
+.act{white-space:nowrap;display:flex;gap:.3rem}
+.eb,.db{
+  background:none;border:1px solid transparent;cursor:pointer;
+  padding:.2rem .35rem;border-radius:5px;font-size:.78rem;
+  line-height:1;transition:all .15s
+}
+.eb{color:var(--ac)}.eb:hover{background:rgba(79,142,247,.18);border-color:rgba(79,142,247,.35)}
+.db{color:var(--er)}.db:hover{background:rgba(232,68,90,.18);border-color:rgba(232,68,90,.35)}
+
+/* ── MODAL ──────────────────────────────────────────────── */
+.mo{
+  display:none;position:fixed;inset:0;
+  background:rgba(5,8,15,.8);backdrop-filter:blur(4px);
+  z-index:900;align-items:center;justify-content:center;padding:1rem
+}
+.mo.open{display:flex}
+.mo-box{
+  background:var(--bg2);border:1px solid var(--brd2);border-radius:12px;
+  padding:1.5rem;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 28px 80px rgba(0,0,0,.7);animation:su .22s cubic-bezier(.34,1.4,.64,1)
+}
+@keyframes su{from{transform:translateY(22px) scale(.97);opacity:.4}to{transform:none;opacity:1}}
+.mo-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem}
+.mo-h h3{color:#fff;font-size:.95rem;font-weight:700;
+          display:flex;align-items:center;gap:.5rem}
+.mo-x{
+  background:none;border:1px solid var(--brd);color:var(--tx2);
+  cursor:pointer;font-size:1.1rem;line-height:1;
+  padding:.18rem .4rem;border-radius:6px;transition:.15s
+}
+.mo-x:hover{background:var(--bg3);color:var(--tx);border-color:var(--brd2)}
+.fg{margin-bottom:.8rem}
+.fg label{
+  display:block;font-size:.68rem;color:var(--tx2);margin-bottom:.3rem;
+  font-weight:700;text-transform:uppercase;letter-spacing:.35px
+}
+.fg input,.fg select,.fg textarea{
+  width:100%;background:var(--bg3);border:1px solid var(--brd);
+  border-radius:7px;padding:.52rem .85rem;color:var(--tx);
+  font-size:.82rem;transition:border-color .2s,box-shadow .2s
+}
+.fg input:focus,.fg select:focus,.fg textarea:focus{
+  outline:none;border-color:var(--ac);
+  box-shadow:0 0 0 3px rgba(79,142,247,.12)
+}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.mo-f{
+  display:flex;gap:.55rem;justify-content:flex-end;
+  margin-top:1rem;padding-top:1rem;border-top:1px solid var(--brd)
+}
+.req{color:var(--er);margin-left:1px}
+.field-hint{font-size:.67rem;color:var(--tx3);margin-top:.2rem}
+
+/* ── TOAST ──────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:1.5rem;right:1.5rem;
+  background:var(--bg2);border:1px solid var(--brd2);border-radius:9px;
+  padding:.7rem 1.1rem;font-size:.82rem;z-index:9999;
+  opacity:0;transform:translateY(16px) scale(.97);
+  transition:all .25s cubic-bezier(.34,1.2,.64,1);
+  pointer-events:none;display:flex;align-items:center;gap:.5rem;
+  max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.5)
+}
+.toast.show{opacity:1;transform:translateY(0) scale(1)}
+.tok{border-color:rgba(46,204,113,.5);color:var(--ok)}
+.terr{border-color:rgba(232,68,90,.5);color:var(--er)}
+.twarn{border-color:rgba(240,165,0,.5);color:var(--wn)}
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+.foot{
+  background:var(--bg2);border-top:1px solid var(--brd);
+  padding:.8rem 2rem;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:.5rem;
+  font-size:.7rem;color:var(--tx3)
+}
+.foot span{display:flex;align-items:center;gap:.4rem}
+.foot code{color:var(--ac);font-size:.68rem}
+.stor-status{
+  display:flex;align-items:center;gap:.4rem;
+  font-size:.7rem;color:var(--tx2)
+}
+.stor-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);
+           box-shadow:0 0 6px rgba(46,204,113,.5)}
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:900px){
+  .ctr-bar{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:600px){
+  .ctr-bar{grid-template-columns:repeat(2,1fr)}
+  .tab-cnt{padding:1rem}
+  .tb{flex-direction:column}
+  .si,.sl{min-width:100%;width:100%}
+  .fg-row{grid-template-columns:1fr}
+  .hdr-in{flex-direction:column;align-items:flex-start}
+  .xbar{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="brand">
+      <div class="brand-icon">🛡</div>
+      <h1>Red SCADA — PROMIGAS / TRANSMETANO
+        <span>Consulta y Gestión de IPs · Inventario Consolidado · Junio 2026</span>
+      </h1>
+    </div>
+    <div class="hdr-pills">
+      <span class="pill p-g">● EN LÍNEA</span>
+      <span class="pill p-b">✏ EDICIÓN ACTIVA</span>
+      <span class="pill p-o">💾 LOCAL STORAGE</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ COUNTERS BAR ══════════ -->
+<div class="ctr-bar">
+  <div class="ctr">
+    <div class="ctr-n" id="kSeg">61</div>
+    <div class="ctr-l">Segmentos</div>
+    <div class="ctr-accent"></div>
+  </div>
+  <div class="ctr">
+    <div class="ctr-n" id="kDisp">178</div>
+    <div class="ctr-l">Dispositivos IP</div>
+    <div class="ctr-accent"></div>
+  </div>
+  <div class="ctr">
+    <div class="ctr-n" id="kNuev">23</div>
+    <div class="ctr-l">IPs Nuevas</div>
+    <div class="ctr-accent"></div>
+  </div>
+  <div class="ctr">
+    <div class="ctr-n" id="kTM">33</div>
+    <div class="ctr-l">Enlaces TM</div>
+    <div class="ctr-accent"></div>
+  </div>
+  <div class="ctr">
+    <div class="ctr-n" id="kPMG">56</div>
+    <div class="ctr-l">Enlaces PMG</div>
+    <div class="ctr-accent"></div>
+  </div>
+  <div class="ctr">
+    <div class="ctr-n" id="kEst">24</div>
+    <div class="ctr-l">Estaciones TM</div>
+    <div class="ctr-accent"></div>
+  </div>
+</div>
+
+<!-- ══════════ BÚSQUEDA GLOBAL ══════════ -->
+<div class="srch-global">
+  <input id="gSearch" type="text"
+         placeholder="Búsqueda global — escribe IP, sede, ID de enlace, proveedor… y pulsa Enter">
+  <button class="btn btn-p" onclick="globalSearch()">🔍 Buscar en todo</button>
+  <span id="storStatus">
+    <span class="stor-status">
+      <span class="stor-dot"></span>
+      <span class="stor-lbl">Cargando…</span>
+    </span>
+  </span>
+</div>
+
+<!-- ══════════ EXPORT BAR ══════════ -->
+<div class="xbar">
+  <span class="xbar-label">Exportar</span>
+  <button class="btn btn-g" onclick="xJSON('segmentos')">↓ Segmentos JSON</button>
+  <button class="btn btn-g" onclick="xJSON('dispositivos')">↓ Dispositivos JSON</button>
+  <button class="btn btn-g" onclick="xJSON('estaciones')">↓ Estaciones JSON</button>
+  <button class="btn btn-g" onclick="xJSON('enlacesTM')">↓ Enlaces TM JSON</button>
+  <button class="btn btn-g" onclick="xJSON('enlacesPMG')">↓ Enlaces PMG JSON</button>
+  <button class="btn btn-g" onclick="xCSV()">↓ CSV tabla activa</button>
+  <button class="btn btn-w" style="margin-left:auto" onclick="clearLocal()">↺ Restaurar datos base</button>
+</div>
+
+<!-- ══════════ TABS ══════════ -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="t-seg" onclick="sw(event,'t-seg')">
+      📡 Segmentos <span class="tab-count" id="tbSeg">61</span></button>
+    <button class="tab-btn" data-tab="t-disp" onclick="sw(event,'t-disp')">
+      💻 Dispositivos <span class="tab-count" id="tbDisp">178</span></button>
+    <button class="tab-btn" data-tab="t-nuev" onclick="sw(event,'t-nuev')">
+      🆕 IPs Nuevas <span class="tab-count" id="tbNuev">23</span></button>
+    <button class="tab-btn" data-tab="t-tm" onclick="sw(event,'t-tm')">
+      🔗 TRANSMETANO <span class="tab-count" id="tbTM">33</span></button>
+    <button class="tab-btn" data-tab="t-pmg" onclick="sw(event,'t-pmg')">
+      🔗 PROMIGAS <span class="tab-count" id="tbPMG">56</span></button>
+    <button class="tab-btn" data-tab="t-est" onclick="sw(event,'t-est')">
+      🏭 Estaciones TM <span class="tab-count" id="tbEst">24</span></button>
+  </div>
+</div>
+
+<!-- ══ TAB: SEGMENTOS ══ -->
+<div id="t-seg" class="tab-cnt active">
+  <div class="sec">
+    <div class="sec-hdr">
+      <div class="sec-title">📡 Segmentos de Red SCADA
+        <span class="tag tag-ok">61 segmentos</span>
+        <span class="tag tag-warn">4 nuevos 172.30.15.x</span>
+      </div>
+      <button class="btn btn-s" onclick="openAdd('seg')">＋ Nuevo segmento</button>
+    </div>
+    <div class="tb">
+      <input class="si" id="qSeg" placeholder="Buscar estación, IP de red, empresa, VLAN…" oninput="fSeg()">
+      <select class="sl" id="fES" onchange="fSeg()">
+        <option value="">— Todas las empresas —</option>
+        <option>Promigas</option><option>Transmetano</option>
+        <option>Promioriente</option><option>Promisol</option><option>SPEC</option>
+      </select>
+      <button class="btn btn-g" onclick="rst('qSeg','fES');fSeg()">✕ Limpiar</button>
+    </div>
+    <div class="ri">
+      Mostrando <strong id="cSeg">61</strong>
+      <span class="ri-sep"></span>
+      Total en base: <span id="tSeg">61</span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:40px">#</th><th>Estación / Sede</th><th>IP de Red</th>
+        <th>Máscara</th><th>Empresa</th><th>VLAN</th><th style="width:70px">Acc.</th>
+      </tr></thead>
+      <tbody id="bodySeg"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ TAB: DISPOSITIVOS ══ -->
+<div id="t-disp" class="tab-cnt">
+  <div class="sec">
+    <div class="sec-hdr">
+      <div class="sec-title">💻 Inventario de Dispositivos IP
+        <span class="tag tag-ok">Tipo · Gateway · NHP · Proveedor</span>
+      </div>
+      <button class="btn btn-s" onclick="openAdd('disp')">＋ Nuevo dispositivo</button>
+    </div>
+    <div class="tb">
+      <input class="si" id="qD" placeholder="Buscar IP, equipo, tipo, gateway, proveedor, device ID…" oninput="fDisp()">
+      <select class="sl" id="fTD" onchange="fDisp()">
+        <option value="">— Todos los tipos —</option>
+        <option>RTU</option><option>PC</option><option>RADIO</option>
+        <option>CONCENTRADOR</option><option>PLC</option>
+        <option>ULTRASONICO</option><option>RESERVA</option>
+      </select>
+      <button class="btn btn-g" onclick="rst('qD','fTD');fDisp()">✕ Limpiar</button>
+    </div>
+    <div class="ri">
+      Mostrando <strong id="cDisp">178</strong>
+      <span class="ri-sep"></span>Total: <span id="tDisp">178</span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:40px">#</th><th>IP</th><th>Equipo / Nombre</th><th>Tipo</th>
+        <th>Gateway</th><th>NHP</th><th>Device ID / Slot</th><th>Proveedor</th><th style="width:70px">Acc.</th>
+      </tr></thead>
+      <tbody id="bodyDisp"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ TAB: IPs NUEVAS ══ -->
+<div id="t-nuev" class="tab-cnt">
+  <div class="sec">
+    <div class="sec-hdr">
+      <div class="sec-title">🆕 IPs Nuevas / Pendientes de Asignación
+        <span class="tag tag-warn">Desde hoja Nuevas_IP</span>
+      </div>
+      <button class="btn btn-s" onclick="openAdd('nuev')">＋ Nueva IP</button>
+    </div>
+    <div class="tb">
+      <input class="si" id="qN" placeholder="Buscar sede, IP, dispositivo, observación…" oninput="fNuev()">
+      <button class="btn btn-g" onclick="rst('qN');fNuev()">✕ Limpiar</button>
+    </div>
+    <div class="ri">
+      Mostrando <strong id="cNuev">23</strong>
+      <span class="ri-sep"></span>Total: <span id="tNuev">23</span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:40px">#</th><th>Sede / Sitio</th><th>IP Asignada</th>
+        <th>Máscara</th><th>Gateway</th><th>Dispositivo</th><th>Observación</th><th style="width:70px">Acc.</th>
+      </tr></thead>
+      <tbody id="bodyNuev"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ TAB: ENLACES TM ══ -->
+<div id="t-tm" class="tab-cnt">
+  <div class="sec">
+    <div class="sec-hdr">
+      <div class="sec-title">🔗 Servicios de Enlace — TRANSMETANO
+        <span class="tag tag-ok">33 enlaces</span>
+      </div>
+      <button class="btn btn-s" onclick="openAdd('enlTM')">＋ Nuevo enlace</button>
+    </div>
+    <div class="tb">
+      <input class="si" id="qTM" placeholder="Buscar sede, municipio, ID de servicio, proveedor…" oninput="fTM()">
+      <select class="sl" id="fPTM" onchange="fTM()">
+        <option value="">— Todos los proveedores —</option>
+        <option>TELEFONICA</option><option>CLARO</option>
+        <option>Mediacommerce</option><option>Liberty</option><option>AXXESS</option>
+      </select>
+      <select class="sl" id="fTTM" onchange="fTM()">
+        <option value="">— Todos los tipos —</option>
+        <option>Valvula</option><option>SAC</option><option>CPC</option>
+        <option>Bodega</option><option>Estacion</option>
+      </select>
+      <button class="btn btn-g" onclick="rst('qTM','fPTM','fTTM');fTM()">✕ Limpiar</button>
+    </div>
+    <div class="ri">
+      Mostrando <strong id="cTM">33</strong>
+      <span class="ri-sep"></span>Total: <span id="tTM">33</span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:40px">#</th><th>Sede</th><th>Municipio</th><th>Departamento</th>
+        <th>ID Servicio</th><th>Proveedor</th><th>Ancho de Banda</th><th>Tipo</th><th style="width:70px">Acc.</th>
+      </tr></thead>
+      <tbody id="bodyTM"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ TAB: ENLACES PMG ══ -->
+<div id="t-pmg" class="tab-cnt">
+  <div class="sec">
+    <div class="sec-hdr">
+      <div class="sec-title">🔗 Servicios de Enlace — PROMIGAS
+        <span class="tag tag-ok">56 enlaces</span>
+      </div>
+      <button class="btn btn-s" onclick="openAdd('enlPMG')">＋ Nuevo enlace</button>
+    </div>
+    <div class="tb">
+      <input class="si" id="qPMG" placeholder="Buscar sede, municipio, ID de servicio, proveedor…" oninput="fPMG()">
+      <select class="sl" id="fPPMG" onchange="fPMG()">
+        <option value="">— Todos los proveedores —</option>
+        <option>CLARO</option><option>TELEFONICA</option>
+        <option>Liberty</option><option>Medicommerce</option>
+      </select>
+      <select class="sl" id="fTPMG" onchange="fPMG()">
+        <option value="">— Todos los tipos —</option>
+        <option>Valvula</option><option>Estacion</option>
+        <option>SAC</option><option>BACKUP</option><option>CPC</option>
+      </select>
+      <button class="btn btn-g" onclick="rst('qPMG','fPPMG','fTPMG');fPMG()">✕ Limpiar</button>
+    </div>
+    <div class="ri">
+      Mostrando <strong id="cPMG">56</strong>
+      <span class="ri-sep"></span>Total: <span id="tPMG">56</span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:40px">#</th><th>Sede</th><th>Municipio</th><th>Departamento</th>
+        <th>ID Servicio</th><th>Proveedor</th><th>Ancho de Banda</th><th>Tipo</th><th style="width:70px">Acc.</th>
+      </tr></thead>
+      <tbody id="bodyPMG"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ TAB: ESTACIONES TM ══ -->
+<div id="t-est" class="tab-cnt">
+  <div class="sec">
+    <div class="sec-hdr">
+      <div class="sec-title">🏭 Estaciones TRANSMETANO — 172.30.14.x
+        <span class="tag tag-ok">24 estaciones</span>
+        <span class="tag tag-ok">+ IP Conversor Lantronix</span>
+      </div>
+      <button class="btn btn-s" onclick="openAdd('est')">＋ Nueva estación</button>
+    </div>
+    <div class="tb">
+      <input class="si" id="qE" placeholder="Buscar sede, IP Router, IP RTU, IP Conversor…" oninput="fEst()">
+      <button class="btn btn-g" onclick="rst('qE');fEst()">✕ Limpiar</button>
+    </div>
+    <div class="ri">
+      Mostrando <strong id="cEst">24</strong>
+      <span class="ri-sep"></span>Total: <span id="tEst">24</span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:40px">#</th><th>Sede</th><th>IP Router</th>
+        <th>IP RTU / Conv. Serial</th><th>IP Conversor Lantronix</th>
+        <th>Empresa</th><th style="width:70px">Acc.</th>
+      </tr></thead>
+      <tbody id="bodyEst"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL ══════════ -->
+<div class="mo" id="modal">
+  <div class="mo-box">
+    <div class="mo-h">
+      <h3 id="mTitle">Registro</h3>
+      <button class="mo-x" onclick="closeMo()">✕</button>
+    </div>
+    <div id="mBody"></div>
+    <div class="mo-f">
+      <button class="btn btn-g" onclick="closeMo()">Cancelar</button>
+      <button class="btn btn-p" onclick="saveRec()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer class="foot">
+  <span>Red SCADA · <strong>PROMIGAS / TRANSMETANO</strong> · Datos consolidados desde Excel</span>
+  <span>Storage key: <code>scada_v4</code> · Junio 2026</span>
+</footer>
+
+<script>
+const BASE={segmentos:[{"nombre_estacion":"Principal","ip_red":"172.30.1.0","mascara":"255.255.255.0","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Ballena","ip_red":"172.30.10.0","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Heroica","ip_red":"172.30.10.16","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Sahagun","ip_red":"172.30.10.32","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Sabanalarga","ip_red":"172.30.10.48","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Caracoli","ip_red":"172.30.10.64","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Palomino","ip_red":"172.30.10.80","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Arenosa","ip_red":"172.30.10.96","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Caracoli_2","ip_red":"172.30.10.128","mascara":"255.255.255.240","empresa":"Promigas","vlan":"12"},{"nombre_estacion":"Filadelfia","ip_red":"172.30.10.160","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Promisol - Hocol","ip_red":"172.30.10.176","mascara":"255.255.255.240","empresa":"Promisol","vlan":"11"},{"nombre_estacion":"SPEC BARU","ip_red":"172.30.10.208","mascara":"255.255.255.240","empresa":"SPEC","vlan":"11"},{"nombre_estacion":"Palenque","ip_red":"172.30.10.224","mascara":"255.255.255.240","empresa":"Promioriente","vlan":"11"},{"nombre_estacion":"Valvula Cordialidad","ip_red":"172.30.11.0","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Mamonal","ip_red":"172.30.11.16","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"La Mami","ip_red":"172.30.11.32","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Km 30","ip_red":"172.30.11.48","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Bremen","ip_red":"172.30.11.64","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Majagua","ip_red":"172.30.11.80","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Dique Sur","ip_red":"172.30.11.96","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Dique Norte","ip_red":"172.30.11.112","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Palo Alto","ip_red":"172.30.11.128","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Nispero","ip_red":"172.30.11.144","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula San Mateo","ip_red":"172.30.11.160","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Toluviejo","ip_red":"172.30.11.176","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Via 40","ip_red":"172.30.11.192","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula Jobo","ip_red":"172.30.11.208","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula La Variante - Mamonal","ip_red":"172.30.11.224","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Valvula KM 27","ip_red":"172.30.11.240","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Los Pinos","ip_red":"172.30.13.0","mascara":"255.255.255.240","empresa":"Promioriente","vlan":"11"},{"nombre_estacion":"Malena","ip_red":"172.30.13.16","mascara":"255.255.255.240","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Paiva","ip_red":"172.30.13.32","mascara":"255.255.255.224","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"Sebastopol","ip_red":"172.30.14.0","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Válvula Secc. KM 2","ip_red":"172.30.14.8","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Puerto Berrio","ip_red":"172.30.14.16","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Malena","ip_red":"172.30.14.24","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Válvula Secc. KM 26","ip_red":"172.30.14.32","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Válvula Secc. KM 48","ip_red":"172.30.14.40","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Maceo","ip_red":"172.30.14.48","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"San José del Nus","ip_red":"172.30.14.56","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Guacharacas","ip_red":"172.30.14.64","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Yolombó","ip_red":"172.30.14.72","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Válvula Secc. KM 99","ip_red":"172.30.14.80","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Cisneros","ip_red":"172.30.14.88","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Santo Domingo","ip_red":"172.30.14.96","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Válvula Secc. KM 120","ip_red":"172.30.14.104","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Barbosa","ip_red":"172.30.14.112","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Derivación Oriente","ip_red":"172.30.14.120","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Parque de las Aguas","ip_red":"172.30.14.128","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Tasajera","ip_red":"172.30.14.136","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Válvula Secc. Oriental KM 12","ip_red":"172.30.14.144","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Guarne","ip_red":"172.30.14.152","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Honda","ip_red":"172.30.14.160","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Felisa","ip_red":"172.30.14.168","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Belen","ip_red":"172.30.14.184","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"Rionegro Residencial","ip_red":"172.30.14.192","mascara":"255.255.255.248","empresa":"Transmetano","vlan":"11"},{"nombre_estacion":"DMZ OT","ip_red":"172.30.130.0","mascara":"255.255.255.240","empresa":"Promigas","vlan":"130"},{"nombre_estacion":"Banhaderos (Especial)","ip_red":"172.30.15.48","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"La Barra (Especial)","ip_red":"172.30.15.64","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"KM 20 Guajira","ip_red":"172.30.15.16","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"},{"nombre_estacion":"KM 35 Guajira","ip_red":"172.30.15.32","mascara":"255.255.255.240","empresa":"Promigas","vlan":"11"}],dispositivos:[{"ip":"172.30.1.10","equipo":"CPCOPR01","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.11","equipo":"CPCOPR02","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.12","equipo":"CPCOPR03","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.1.124","equipo":"CPCVW01","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.125","equipo":"CPCVW02","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.13","equipo":"CPCOPR06 (NHP A)","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.17","equipo":"CPCOPR08","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.19","equipo":"CPCOPRPO01","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.22","equipo":"CPCOPRTM01","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"00_Transoccidente","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.23","equipo":"CPCOPRTM02","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"06_Via40_Croma","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.25","equipo":"Concentrador TSO","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"02_Barranquilla","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.26","equipo":"RTU Cromatografo Via 40","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"03_CControl2","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.27","equipo":"Concentrador Barranquilla","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"01_CControl1","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.28","equipo":"Concentrador CControl2","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.29","equipo":"Concentrador CControl1","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.37","equipo":"CPCOPRPO02","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.38\n172.30.1.49\n172.30.1.50","equipo":"CPCOPR05","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.39\n172.30.1.47\n172.30.1.48","equipo":"CPCOPR04","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.40\n172.30.1.51\n172.30.1.52","equipo":"CPCOPR07","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.41","equipo":"CPCOPR09","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.1.43","equipo":"CPCOPR12","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.1.53\n172.30.1.54\n172.30.1.55","equipo":"CPCOPR10","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.10.10","equipo":"RTU Válvula Ballena","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.2","equipo":"BALLENA RESERVA","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"","tipo_dispositivo":"RESERVA","device_id":"05_Ballena","proveedor":"CLARO"},{"ip":"172.30.10.3","equipo":"CONCENTRADOR BALLENA","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":""},{"ip":"172.30.10.4","equipo":"RTU Filtros Ballena","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.5","equipo":"RADIO MASTER BALLENA","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.6","equipo":"RADIO SLAVE BAÑADEROS","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.7","equipo":"CONCENTRADOR BAÑADEROS","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"23_CW_TGI","proveedor":""},{"ip":"172.30.15.50","equipo":"RTU BAÑADEROS (ESPECIAL)","mascara":"255.255.255.240","gateway":"172.30.15.49","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.15.51","equipo":"RADIO SLAVE BAÑADEROS (ESPECIAL)","mascara":"255.255.255.240","gateway":"172.30.15.49","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.9","equipo":"RTU INTERCONEXION COSTA BALLENA","mascara":"255.255.255.240","gateway":"172.30.10.1","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"22_CW_Ballena","proveedor":"CLARO"},{"ip":"172.30.10.130","equipo":"PLC CARACOLÍ","mascara":"255.255.255.240","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PLC","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.10.135","equipo":"CPCOPR02A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.10.136","equipo":"Válvula Km 82 (CARACOLI)","mascara":"255.255.255.240","gateway":"172.30.10.129","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"13_CW_Heroica","proveedor":"TELEFONICA"},{"ip":"172.30.10.137","equipo":"Válvula Km 83 (CARACOLI)","mascara":"255.255.255.240","gateway":"172.30.10.129","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.10.138","equipo":"RTU Calidad del gas Caracolí","mascara":"255.255.255.240","gateway":"172.30.10.129","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.10.139","equipo":"CPCOPR06A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.10.141","equipo":"CPCOPRPO01A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.10.145","equipo":"CPCOPR01A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.10.149\n172.30.10.150\n172.30.10.151","equipo":"CPCOPR11 (NHP B)","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"18_Sahagun","proveedor":"TELEFONICA"},{"ip":"172.30.10.152\n172.30.10.146\n172.30.10.147","equipo":"CPCOPR04A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"19_CW_Sahagun","proveedor":"TELEFONICA"},{"ip":"172.30.10.153\n172.30.10.142\n172.30.10.144","equipo":"CPCOPR05A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.10.154\n172.30.10.140\n172.30.10.148","equipo":"CPCOPR07A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.10.164","equipo":"RTU Válvula FILADELFIA 10","mascara":"255.255.255.240","gateway":"172.30.10.162","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.165","equipo":"RTU Válvula FILADELFIA GDS","mascara":"255.255.255.240","gateway":"172.30.10.162","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.166","equipo":"PLC COMPRESS SOLAR Filadelfia","mascara":"255.255.255.224","gateway":"172.30.10.162","nhp":"","tipo_dispositivo":"PLC","device_id":"","proveedor":""},{"ip":"172.30.10.167","equipo":"RTU MEDICION EN FILADELFIA","mascara":"255.255.255.224","gateway":"172.30.10.162","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"05_Bullerengue","proveedor":"CLARO"},{"ip":"172.30.10.18\n172.30.10.26","equipo":"OPHEROICA2","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.10.19\n172.30.10.27","equipo":"OPHEROICA1","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"","tipo_dispositivo":"PC","device_id":"03_Ccaracoli","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.20","equipo":"RTU Válvula Heroica1","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.21","equipo":"RTU Cromatografo Heroica","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"09_CW_Caracoli","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.22","equipo":"Concentrador Heroica","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.23","equipo":"Concentrador Heroica 2","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.24","equipo":"PC SURTIGAS","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"172.30.1.13","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.25","equipo":"RTU Automatiz. Heroica","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.28","equipo":"SWITCH STRATIX 3 Rack  C.C  ( py hidrogeno)","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"","tipo_dispositivo":"PLC","device_id":"04_CW_PALOMINO","proveedor":"CLARO"},{"ip":"172.30.10.29","equipo":"SERVIDOR HMI FACTORYTALK VIEW (Py hidrogeno)","mascara":"255.255.255.240","gateway":"172.30.10.17","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.10.179","equipo":"RTU Hocol Pozo","mascara":"255.255.255.240","gateway":"172.30.10.178","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"07_CW_Arenosa","proveedor":"CLARO"},{"ip":"172.30.10.180","equipo":"Radio Master Hocol vlv","mascara":"255.255.255.240","gateway":"172.30.10.178","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"04_Arenosa_1","proveedor":"CLARO"},{"ip":"172.30.10.181","equipo":"Radio Slave Hocol vlv","mascara":"255.255.255.240","gateway":"172.30.10.178","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"05_Arenosa_2","proveedor":"CLARO"},{"ip":"172.30.10.182","equipo":"RTU Hocol vlv","mascara":"255.255.255.240","gateway":"172.30.10.178","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"15_Gateway_Arenosa","proveedor":"CLARO"},{"ip":"172.30.10.211","equipo":"RTU SPEC","mascara":"255.255.255.240","gateway":"172.30.10.210","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.10.227","equipo":"CONCENTRADOR PALENQUE","mascara":"255.255.255.240","gateway":"172.30.10.226","nhp":"","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":"CLARO"},{"ip":"172.30.10.229","equipo":"OPPALENQUE2","mascara":"255.255.255.240","gateway":"172.30.10.226","nhp":"","tipo_dispositivo":"PC","device_id":"28_Palermo","proveedor":"CLARO"},{"ip":"172.30.10.37","equipo":"LIBRE (LA BARRA)","mascara":"255.255.255.240","gateway":"172.30.10.33","nhp":"172.30.1.13","tipo_dispositivo":"RESERVA","device_id":"","proveedor":"CLARO"},{"ip":"172.30.10.38","equipo":"RTU Válvula Sahagun","mascara":"255.255.255.240","gateway":"172.30.10.33","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"24_CW_Madeflex","proveedor":"CLARO"},{"ip":"172.30.10.39","equipo":"RADIO BASE SAHAGUN","mascara":"255.255.255.240","gateway":"172.30.10.33","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.40","equipo":"RADIO BASE LA BARRA","mascara":"255.255.255.240","gateway":"172.30.10.33","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.41","equipo":"RTU LA BARRA","mascara":"255.255.255.240","gateway":"172.30.10.33","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.42","equipo":"LIBRE (LA BARRA)","mascara":"255.255.255.240","gateway":"172.30.10.33","nhp":"172.30.1.13","tipo_dispositivo":"RESERVA","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.15.66","equipo":"RADIO SLAVE LA BARRA (ESPECIAL)","mascara":"255.255.255.240","gateway":"172.30.15.65","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.15.67","equipo":"RTU LA BARRA (ESPECIAL)","mascara":"255.255.255.240","gateway":"172.30.15.65","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.50","equipo":"RTU BULLERENGUE","mascara":"255.255.255.240","gateway":"172.30.10.49","nhp":"RTU","tipo_dispositivo":"RTU","device_id":"26_KM82","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.51","equipo":"RADIO MASTER Bullerengue","mascara":"255.255.255.240","gateway":"172.30.10.49","nhp":"RADIO","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.66","equipo":"Concentrador Ccaracoli","mascara":"255.255.255.240","gateway":"172.30.10.65","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"27_XV110","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.67","equipo":"Concentrador TSO Alterno","mascara":"255.255.255.240","gateway":"172.30.10.65","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"25_Caracoli_CROMA","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.68","equipo":"RTU Válvulas Caracolí","mascara":"255.255.255.240","gateway":"172.30.10.65","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.134","equipo":"CPCOPRTM01A","mascara":"255.255.255.224","gateway":"172.30.10.129","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.74","equipo":"Concentrador CCONTROL2A","mascara":"255.255.255.240","gateway":"172.30.10.65","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.75","equipo":"Concentrador CCONTROL1A","mascara":"255.255.255.240","gateway":"172.30.10.65","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.86","equipo":"PLC PALOMINO","mascara":"255.255.255.240","gateway":"172.30.10.81","nhp":"","tipo_dispositivo":"PLC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.10.89","equipo":"RTU Válvula Palomino","mascara":"255.255.255.240","gateway":"172.30.10.81","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"09_Filadelfia_AGT","proveedor":"CLARO"},{"ip":"172.30.10.90","equipo":"Calidad de Gas Palomino","mascara":"255.255.255.240","gateway":"172.30.10.81","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"10_Filadelfia_Loop","proveedor":"CLARO"},{"ip":"172.30.10.100","equipo":"RTU Arenosa valvula 2","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.10.101","equipo":"RTU Gateway","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.10.102","equipo":"Radio Arenosa master","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"","tipo_dispositivo":"RADIO","device_id":"08_Hocol_CPF","proveedor":"CLARO"},{"ip":"172.30.10.103","equipo":"Radio Palermo slave","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":"CLARO"},{"ip":"172.30.10.104","equipo":"RTU Palermo","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.10.105","equipo":"Radio Madeflex slave","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"","tipo_dispositivo":"RADIO","device_id":"14_CW_Hocol","proveedor":"CLARO"},{"ip":"172.30.10.106","equipo":"RTU Madeflex","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"08_SPEC","proveedor":"CLARO"},{"ip":"172.30.10.107","equipo":"Concentrador Arenosa","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"CONCENTRADOR","device_id":"","proveedor":""},{"ip":"172.30.10.108","equipo":"Calidad de Gas Arenosa","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.110","equipo":"RTU Calle 30","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.14","tipo_dispositivo":"RTU","device_id":"RTU Calle 30 (RESERVADO)","proveedor":"172.30.10.108"},{"ip":"172.30.10.109","equipo":"RADIO Calle 30","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.14","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.98","equipo":"Arenosa PPAL","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"02_RED_Circunvalar","proveedor":"CLARO"},{"ip":"172.30.10.99","equipo":"RTU Arenosa valvula 1","mascara":"255.255.255.240","gateway":"172.30.10.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"01_CW_MAMONAL","proveedor":"CLARO"},{"ip":"172.30.11.2","equipo":"RTU Válvula Coordialidad","mascara":"255.255.255.240","gateway":"172.30.11.1","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"02_HUBMAMONAL_C1","proveedor":"CLARO"},{"ip":"172.30.11.114","equipo":"RTU DIQUE NORTE GDS","mascara":"255.255.255.0","gateway":"172.30.11.113","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"03_HUBMAMONAL_C2","proveedor":"CLARO"},{"ip":"172.30.11.115","equipo":"RTU DIQUE NORTE 10","mascara":"255.255.255.0","gateway":"172.30.11.113","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.116","equipo":"RTU DIQUE SUR VIA DNORTE","mascara":"255.255.255.0","gateway":"172.30.11.113","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.117","equipo":"Radio IP DIQUE NORTE GDS","mascara":"255.255.255.0","gateway":"172.30.11.113","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.118","equipo":"Radio IP DIQUE NORTE 10","mascara":"255.255.255.0","gateway":"172.30.11.113","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.119","equipo":"Radio IP DIQUE SUR 10","mascara":"255.255.255.0","gateway":"172.30.11.113","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.11.130","equipo":"RTU PALO ALTO GDS","mascara":"255.255.255.240","gateway":"172.30.11.129","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.131","equipo":"Radio Slave Palo Alto 10\"","mascara":"255.255.255.240","gateway":"172.30.11.129","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"21_KM123","proveedor":"C&W"},{"ip":"172.30.11.132","equipo":"Radio Master Palo Alto GDS","mascara":"255.255.255.240","gateway":"172.30.11.129","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.11.133","equipo":"RTU Válvula Palo Alto 10","mascara":"255.255.255.240","gateway":"172.30.11.129","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.146","equipo":"RTU NISPERO GDS","mascara":"255.255.255.240","gateway":"172.30.11.145","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.147","equipo":"RTU Válvula Nispero 10","mascara":"255.255.255.240","gateway":"172.30.11.145","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.162","equipo":"RTU SAN MATEO GDS","mascara":"255.255.255.240","gateway":"172.30.11.161","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.163","equipo":"RTU SAN MATEO 1","mascara":"255.255.255.240","gateway":"172.30.11.161","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"10_KM30","proveedor":"CLARO"},{"ip":"172.30.11.18","equipo":"RTU Válvula Mamonal","mascara":"255.255.255.0","gateway":"172.30.11.17","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.19","equipo":"RTU Hub Mamonal proceso","mascara":"255.255.255.240","gateway":"172.30.11.17","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.20","equipo":"RTU Hub Mamonal valvulas","mascara":"255.255.255.240","gateway":"172.30.11.17","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.21","equipo":"USM1 Hub Mamonal","mascara":"255.255.255.240","gateway":"172.30.11.17","nhp":"","tipo_dispositivo":"RESERVA","device_id":"03_Bremen","proveedor":"TELEFONICA"},{"ip":"172.30.11.22","equipo":"Reservado para USM2 Hub Mamonal","mascara":"255.255.255.240","gateway":"172.30.11.17","nhp":"","tipo_dispositivo":"RESERVA","device_id":"","proveedor":""},{"ip":"172.30.11.23","equipo":"RTU Cromatografo Mamonal","mascara":"255.255.255.240","gateway":"172.30.11.17","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"01_Canacol","proveedor":"TELEFONICA"},{"ip":"172.30.11.24","equipo":"PLC Hub Mamonal F&G","mascara":"255.255.255.240","gateway":"172.30.11.17","nhp":"n/a","tipo_dispositivo":"PLC","device_id":"12_CW_Majagua","proveedor":"TELEFONICA"},{"ip":"172.30.11.178","equipo":"RTU TOLUVIEJO GDS","mascara":"255.255.255.240","gateway":"172.30.11.177","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"16_CW_KM84","proveedor":"TELEFONICA"},{"ip":"172.30.11.179","equipo":"RTU Válvula Toluviejo 10","mascara":"255.255.255.240","gateway":"172.30.11.177","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.11.194","equipo":"RTU Interconexión Via 40","mascara":"255.255.255.240","gateway":"172.30.11.193","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.1.57","equipo":"Válvula Via 40 Radio Master","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.1.58","equipo":"Válvula Via 40 Radio SLAVE","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.1.59","equipo":"RTU Válvula via 40","mascara":"255.255.255.0","gateway":"172.30.1.1","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.210","equipo":"RTU Válvula Jobo","mascara":"255.255.255.240","gateway":"172.30.11.209","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.11.211","equipo":"RTU válvula Jobo GJM","mascara":"255.255.255.240","gateway":"172.30.11.209","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"11_Dsur_Loop","proveedor":"CLARO"},{"ip":"172.30.11.212","equipo":"RTU FILTRO JOBO","mascara":"255.255.255.240","gateway":"172.30.11.209","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"17_CW_ERM_CORREA","proveedor":"CLARO"},{"ip":"172.30.11.226","equipo":"RTU Válvula La Variante","mascara":"255.255.255.0","gateway":"172.30.11.225","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.242","equipo":"RTU Válvula km 27 GPC","mascara":"255.255.255.240","gateway":"172.30.11.241","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.34","equipo":"RADIO MASTER MAMI","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.35","equipo":"RTU LA MAMI","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"","tipo_dispositivo":"RTU","device_id":"07_DNorte_Loop","proveedor":"CLARO"},{"ip":"172.30.11.36","equipo":"RADIO SLAVE DIVA","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"172.30.1.13","tipo_dispositivo":"RADIO","device_id":"06_Dnorte_AGT","proveedor":"CLARO"},{"ip":"172.30.11.37","equipo":"RTU DIVA","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"","tipo_dispositivo":"RTU","device_id":"10_Dsur_AGT","proveedor":"CLARO"},{"ip":"172.30.11.38","equipo":"RADIO SLAVE MUCHACHITOS","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.39","equipo":"RTU MUCHACHITOS","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.40","equipo":"RADIO SLAVE CABALLOS","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":"CLARO"},{"ip":"172.30.11.41","equipo":"RTU CABALLOS","mascara":"255.255.255.240","gateway":"172.30.11.33","nhp":"","tipo_dispositivo":"RTU","device_id":"14_PaloAlto_Loop","proveedor":"TELEFONICA"},{"ip":"172.30.11.50","equipo":"RTU Válvula Km 30","mascara":"255.255.255.0","gateway":"172.30.11.49","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.11.51","equipo":"RADIO MASTER Km 30","mascara":"255.255.255.0","gateway":"172.30.11.49","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":"TELEFONICA"},{"ip":"172.30.11.52","equipo":"RADIO SLAVE TASAJERA","mascara":"255.255.255.0","gateway":"172.30.11.49","nhp":"","tipo_dispositivo":"RADIO","device_id":"13_PaloAlto_AGT","proveedor":"TELEFONICA"},{"ip":"172.30.11.53","equipo":"RTU TASAJERA","mascara":"255.255.255.0","gateway":"172.30.11.49","nhp":"","tipo_dispositivo":"RTU","device_id":"12_Nispero_Loop","proveedor":"TELEFONICA"},{"ip":"172.30.11.66","equipo":"RTU BREMEN","mascara":"255.255.255.240","gateway":"172.30.11.65","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"11_Nispero_AGT","proveedor":"TELEFONICA"},{"ip":"172.30.11.67","equipo":"LIBRE","mascara":"255.255.255.240","gateway":"172.30.11.65","nhp":"","tipo_dispositivo":"RESERVA","device_id":"12_SanMateo_Loop","proveedor":"TELEFONICA"},{"ip":"172.30.11.69","equipo":"RTU Bremen_Canacol","mascara":"255.255.255.240","gateway":"172.30.11.65","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"11_SanMateo","proveedor":"TELEFONICA"},{"ip":"172.30.11.82","equipo":"RTU MAJAGUAS","mascara":"255.255.255.240","gateway":"172.30.11.81","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"14_Toluviejo_Loop","proveedor":"TELEFONICA"},{"ip":"172.30.11.83","equipo":"RTU MAJAGUAS JM (km84)","mascara":"255.255.255.240","gateway":"172.30.11.81","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"13_Toluviejo_AGT","proveedor":"TELEFONICA"},{"ip":"172.30.11.84","equipo":"LIBRE","mascara":"255.255.255.240","gateway":"172.30.11.81","nhp":"","tipo_dispositivo":"RESERVA","device_id":"06_VIA40","proveedor":"CLARO"},{"ip":"172.30.11.85","equipo":"LIBRE","mascara":"255.255.255.240","gateway":"172.30.11.81","nhp":"","tipo_dispositivo":"RESERVA","device_id":"07_Jobo_AGT","proveedor":"CLARO"},{"ip":"172.30.11.86","equipo":"IP/serial Tolcementos","mascara":"255.255.255.240","gateway":"172.30.11.81","nhp":"","tipo_dispositivo":"RESERVA","device_id":"20_Jobo_Loop","proveedor":"CLARO"},{"ip":"172.30.11.100","equipo":"RTU D. NORTE 10\"","mascara":"255.255.255.240","gateway":"172.30.11.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"09_Filtro_Jobo","proveedor":"CLARO"},{"ip":"172.30.11.101","equipo":"Radio Master Dsur GDS","mascara":"255.255.255.240","gateway":"172.30.11.97","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.11.102","equipo":"Radio Slave norte 10","mascara":"255.255.255.240","gateway":"172.30.11.97","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.11.98","equipo":"RTU DIQUE SUR GDS","mascara":"255.255.255.240","gateway":"172.30.11.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.99","equipo":"RTU EDS CORREA","mascara":"255.255.255.240","gateway":"172.30.11.97","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"15_Variante","proveedor":"CLARO"},{"ip":"172.30.13.34","equipo":"RTU AGT ENTRADA PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"21_KM27","proveedor":"TELEFONICA"},{"ip":"172.30.13.35","equipo":"RTU AGT SALIDA PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.13.36","equipo":"RTU REG PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","nhp":"172.30.1.13","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.13.37","equipo":"PLC compresora PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","nhp":"","tipo_dispositivo":"PLC","device_id":"","proveedor":""},{"ip":"172.30.13.38","equipo":"USM 1 PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","nhp":"","tipo_dispositivo":"ULTRASONICO","device_id":"29_Paiva_In","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.13.39","equipo":"USM 2 PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","nhp":"","tipo_dispositivo":"ULTRASONICO","device_id":"25_Paiva_Out","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.13.40","equipo":"USM 3 PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","nhp":"","tipo_dispositivo":"RESERVA","device_id":"24_Paiva_Tem","proveedor":"CLARO - TELEFONICA"},{"ip":"10.0.2.28","equipo":"OPTASAJERA1","mascara":"","gateway":"","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.11.213","equipo":"RTU CMSA","mascara":"255.255.255.240","gateway":"172.30.11.209","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":"CLARO - TELEFONICA"},{"ip":"172.30.13.17","equipo":"OPMALENA1","mascara":"","gateway":"","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.13.19","equipo":"OPMALENA2","mascara":"","gateway":"","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.13.2","equipo":"OPLOSPINOS1","mascara":"","gateway":"","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"172.30.11.214","equipo":"RADIO MASTER CMSA","mascara":"255.255.255.240","gateway":"172.30.11.209","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.11.215","equipo":"RADIO SLAVE CMSA","mascara":"255.255.255.240","gateway":"172.30.11.209","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.15.18","equipo":"RTU KM20","mascara":"255.255.255.240","gateway":"172.30.15.17","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.15.34","equipo":"RTU KM35","mascara":"255.255.255.240","gateway":"172.30.15.33","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.10.52","equipo":"RADIO SLAVE Km 57","mascara":"255.255.255.240","gateway":"172.30.10.49","nhp":"RADIO","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.10.53","equipo":"Km 57","mascara":"255.255.255.240","gateway":"172.30.10.49","nhp":"RTU","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"172.30.11.195","equipo":"RADIO MASTER TFLORES","mascara":"255.255.255.240","gateway":"172.30.11.193","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.11.198","equipo":"RADIO SLAVE TFLORES","mascara":"255.255.255.240","gateway":"172.30.11.193","nhp":"","tipo_dispositivo":"RADIO","device_id":"","proveedor":""},{"ip":"172.30.11.199","equipo":"RTU TFLORES","mascara":"255.255.255.240","gateway":"172.30.11.193","nhp":"","tipo_dispositivo":"RTU","device_id":"","proveedor":""},{"ip":"10.200.2.35","equipo":"THIN CLIENT CPC - SCHNEIDER","mascara":"255.255.255.240","gateway":"10.200.2.33","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""},{"ip":"10.200.2.52","equipo":"THIN CLIENT CCA - SCHNEIDER","mascara":"255.255.255.240","gateway":"10.200.2.49","nhp":"","tipo_dispositivo":"PC","device_id":"","proveedor":""}],nuevas:[{"ip":"172.30.10.50","sede":"BULLERENGUE","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RTU","observacion":"SITIO REFERENCIA"},{"ip":"172.30.10.51","sede":"BULLERENGUE","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RADIO MÁSTER","observacion":""},{"ip":"172.30.10.52","sede":"KM 57","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RADIO ESCLAVO","observacion":"SITIO REFERENCIA"},{"ip":"172.30.10.53","sede":"KM 57","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RTU","observacion":""},{"ip":"172.30.10.54","sede":"SABANALARGA VÁLVULA","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RADIO ESCLAVO","observacion":"SOLICITUD IP"},{"ip":"172.30.10.55","sede":"SABANALARGA VÁLVULA","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RTU","observacion":""},{"ip":"172.30.10.56","sede":"SABANALARGA KM0","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RADIO ESCLAVO","observacion":"SOLICITUD IP"},{"ip":"172.30.10.57","sede":"SABANALARGA KM0","mascara":"255.255.255.240","gateway":"172.30.10.49","equipo":"RTU","observacion":""},{"ip":"172.30.15.67","sede":"LA BARRA","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RTU","observacion":"SITIO REFERENCIA"},{"ip":"172.30.15.66","sede":"LA BARRA","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RADIO ESCLAVO","observacion":""},{"ip":"172.30.15.68","sede":"LA BARRA","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RADIO MÁSTER","observacion":"SOLICITUD IP"},{"ip":"172.30.15.69","sede":"CHINÚ VÁLVULA","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RADIO ESCLAVO","observacion":"SOLICITUD IP"},{"ip":"172.30.15.70","sede":"CHINÚ VÁLVULA","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RTU","observacion":""},{"ip":"172.30.15.71","sede":"KM 56","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RADIO ESCLAVO","observacion":"SOLICITUD IP"},{"ip":"172.30.15.72","sede":"KM 56","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RTU","observacion":""},{"ip":"172.30.15.73","sede":"PROVIDENCIA","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RADIO ESCLAVO","observacion":"SOLICITUD IP"},{"ip":"172.30.15.74","sede":"PROVIDENCIA","mascara":"255.255.255.240","gateway":"172.30.15.65","equipo":"RTU","observacion":""},{"ip":"172.30.13.39","sede":"PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","equipo":"ULTRASONICO","observacion":"SITIO REFERENCIA"},{"ip":"172.30.13.40","sede":"PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","equipo":"ULTRASONICO","observacion":""},{"ip":"172.30.13.41","sede":"PAIVA","mascara":"255.255.255.224","gateway":"172.30.13.33","equipo":"RADIO MÁSTER","observacion":"SOLICITUD IP"},{"ip":"172.30.13.42","sede":"BAYUNCA-PONTEZUELA KM 0","mascara":"255.255.255.224","gateway":"172.30.13.33","equipo":"RADIO ESCLAVO","observacion":"SOLICITUD IP"},{"ip":"172.30.13.43","sede":"BAYUNCA-PONTEZUELA KM 0","mascara":"255.255.255.224","gateway":"172.30.13.33","equipo":"RTU","observacion":""},{"ip":"172.30.13.44","sede":"KM 15","mascara":"255.255.255.224","gateway":"172.30.13.33","equipo":"RADIO ESCLAVO","observacion":"SOLICITUD IP"}],estaciones:[{"sede":"Sebastopol","ip_router":"172.30.14.1","ip_rtu":"172.30.14.2","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Válvula Secc. KM 2","ip_router":"172.30.14.9","ip_rtu":"172.30.14.10","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Puerto Berrio","ip_router":"172.30.14.17","ip_rtu":"172.30.14.18","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Malena","ip_router":"172.30.14.25","ip_rtu":"172.30.14.26","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Válvula Secc. KM 26","ip_router":"172.30.14.33","ip_rtu":"172.30.14.34","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Válvula Secc. KM 48","ip_router":"172.30.14.41","ip_rtu":"172.30.14.42","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Maceo","ip_router":"172.30.14.49","ip_rtu":"172.30.14.50","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"San José del Nus","ip_router":"172.30.14.57","ip_rtu":"172.30.14.58","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Guacharacas","ip_router":"172.30.14.65","ip_rtu":"172.30.14.66","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Yolombó","ip_router":"172.30.14.73","ip_rtu":"172.30.14.74","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Válvula Secc. KM 99","ip_router":"172.30.14.81","ip_rtu":"172.30.14.82","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Cisneros","ip_router":"172.30.14.89","ip_rtu":"172.30.14.90","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Santo Domingo","ip_router":"172.30.14.97","ip_rtu":"172.30.14.98","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Válvula Secc. KM 120","ip_router":"172.30.14.105","ip_rtu":"172.30.14.106","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Barbosa","ip_router":"172.30.14.113","ip_rtu":"172.30.14.114","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Derivación Oriente","ip_router":"172.30.14.121","ip_rtu":"172.30.14.122","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Parque de las Aguas","ip_router":"172.30.14.129","ip_rtu":"172.30.14.130","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Tasajera","ip_router":"172.30.14.137","ip_rtu":"172.30.14.138","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Válvula Secc. Oriental KM 12","ip_router":"172.30.14.145","ip_rtu":"172.30.14.146","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Guarne","ip_router":"172.30.14.153","ip_rtu":"172.30.14.154","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Honda","ip_router":"172.30.14.161","ip_rtu":"172.30.14.162","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Felisa","ip_router":"172.30.14.169","ip_rtu":"172.30.14.170","ip_conversor":"172.30.14.171","empresa":"TRANSMETANO"},{"sede":"Belén","ip_router":"172.30.14.177","ip_rtu":"172.30.14.178","ip_conversor":"","empresa":"TRANSMETANO"},{"sede":"Rionegro Residencial","ip_router":"172.30.14.185","ip_rtu":"172.30.14.186","ip_conversor":"","empresa":"TRANSMETANO"}],enlacesTM:[{"sede":"Simitarra","municipio":"Simitarra","departamento":"Santander","id_enlace":"DS-01309280","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Puerto Berrio","municipio":"Puerto Berrio","departamento":"Antioquia","id_enlace":"DS-01309281","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Puerto Berrio","municipio":"Puerto Berrio","departamento":"Antioquia","id_enlace":"DS-01309282","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Puerto Berrio","municipio":"Puerto Berrio","departamento":"Antioquia","id_enlace":"DS-01309284","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Puerto Berrio","municipio":"Puerto Berrio","departamento":"Antioquia","id_enlace":"DS-01309285","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Maceo","municipio":"Maceo","departamento":"Antioquia","id_enlace":"DS-01309286","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Maceo","municipio":"Maceo","departamento":"Antioquia","id_enlace":"DS-01309287","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"San Roque","municipio":"San Roque","departamento":"Antioquia","id_enlace":"DS-01309288","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"San Roque","municipio":"San Roque","departamento":"Antioquia","id_enlace":"DS-01309289","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Yolombo","municipio":"Yolombo","departamento":"Antioquia","id_enlace":"DS-01309290","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Cisneros","municipio":"Cisneros","departamento":"Antioquia","id_enlace":"DS-01309291","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Cisneros","municipio":"Cisneros","departamento":"Antioquia","id_enlace":"DS-01309292","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Santo Domingo","municipio":"Santo Domingo","departamento":"Antioquia","id_enlace":"DS-01309293","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Santo Domingo","municipio":"Santo Domingo","departamento":"Antioquia","id_enlace":"DS-01309294","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Barbosa","municipio":"Barbosa","departamento":"Antioquia","id_enlace":"DS-01309295","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Girardota","municipio":"Girardota","departamento":"Antioquia","id_enlace":"DS-01309296","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Girardota","municipio":"Girardota","departamento":"Antioquia","id_enlace":"DS-01309297","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Girardota","municipio":"Girardota","departamento":"Antioquia","id_enlace":"DS-01309298","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Guarne","municipio":"Guarne","departamento":"Antioquia","id_enlace":"DS-01309299","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Guarne","municipio":"Guarne","departamento":"Antioquia","id_enlace":"DS-01309300","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Guarne","municipio":"Guarne","departamento":"Antioquia","id_enlace":"DS-01309301","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Guarne","municipio":"Guarne","departamento":"Antioquia","id_enlace":"DS-01309302","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Guarne","municipio":"Guarne","departamento":"Antioquia","id_enlace":"DS-01309304","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Rionegro","municipio":"Rionegro","departamento":"Antioquia","id_enlace":"DS-01309305","proveedor":"TELEFONICA","ancho_banda":"512 Kbps","tipo_sede":"Valvula"},{"sede":"Caracoli","municipio":"Caracoli","departamento":"Antioquia","id_enlace":"DS-01309306","proveedor":"TELEFONICA","ancho_banda":"10 Megas","tipo_sede":"CPC"},{"sede":"Girardota","municipio":"Girardota","departamento":"Antioquia","id_enlace":"DS-01541608","proveedor":"TELEFONICA","ancho_banda":"8 Megas","tipo_sede":"Bodega"},{"sede":"Malena","municipio":"Puerto Berrio","departamento":"Antioquia","id_enlace":"3","proveedor":"Mediacommerce","ancho_banda":"20 Mbps","tipo_sede":"Valvula"},{"sede":"Sebastopol","municipio":"Puerto Berrio","departamento":"Antioquia","id_enlace":"4","proveedor":"Mediacommerce","ancho_banda":"20 Mbps","tipo_sede":"Valvula"},{"sede":"Girardota Bodega","municipio":"Girardota","departamento":"Antioquia","id_enlace":"5","proveedor":"Mediacommerce","ancho_banda":"100 Mbps","tipo_sede":"Bodega"},{"sede":"Malena","municipio":"Puerto Berrio","departamento":"Antioquia","id_enlace":"TDN0000014","proveedor":"CLARO","ancho_banda":"1 TB","tipo_sede":"Valvula"},{"sede":"Girardota Tasajera","municipio":"Girardota","departamento":"Antioquia","id_enlace":"TDN0009","proveedor":"CLARO","ancho_banda":"10 Megas","tipo_sede":"Bodega tasajera"},{"sede":"Milla de Oro","municipio":"Medellin","departamento":"Antioquia","id_enlace":"2100540","proveedor":"Liberty","ancho_banda":"50 Mbps","tipo_sede":"SAC"},{"sede":"Milla de Oro","municipio":"Medellin","departamento":"Antioquia","id_enlace":"1","proveedor":"Mediacommerce","ancho_banda":"100 Mbps","tipo_sede":"SAC"}],enlacesPMG:[{"sede":"GDO","municipio":"BAQ","departamento":"Atlantico","id_enlace":"3","proveedor":"Medicommerce","ancho_banda":"1 TB","tipo_sede":"BACKUP"},{"sede":"Caracoli","municipio":"Caracoli","departamento":"Atlantico","id_enlace":"4","proveedor":"Medicommerce","ancho_banda":"1 TB","tipo_sede":"Estacion"},{"sede":"Paiva","municipio":"Santa Rosa","departamento":"Bolivar","id_enlace":"5","proveedor":"Medicommerce","ancho_banda":"1 TB","tipo_sede":"Estacion"},{"sede":"KM 20","municipio":"Manaure","departamento":"Guajira","id_enlace":"8","proveedor":"Medicommerce","ancho_banda":"1 TB","tipo_sede":"Valvula"},{"sede":"KM 35","municipio":"Riohacha","departamento":"Guajira","id_enlace":"9","proveedor":"Medicommerce","ancho_banda":"1 TB","tipo_sede":"Valvula"},{"sede":"Heroica","municipio":"Cartagena","departamento":"Bolivar","id_enlace":"2094603","proveedor":"Liberty","ancho_banda":"10 Megas","tipo_sede":"Estacion"},{"sede":"Caracoli","municipio":"Caracoli","departamento":"Atlantico","id_enlace":"2094607","proveedor":"Liberty","ancho_banda":"500 Megas","tipo_sede":"Estacion"},{"sede":"Paiva","municipio":"Santa Rosa","departamento":"Bolivar","id_enlace":"2098907","proveedor":"Liberty","ancho_banda":"10 Megas","tipo_sede":"Estacion"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"2094003.CO","proveedor":"Liberty","ancho_banda":"1000 Mbps","tipo_sede":"SAC"},{"sede":"Riohacha","municipio":"Riohacha","departamento":"Guajira","id_enlace":"2094605.CO","proveedor":"Liberty","ancho_banda":"10 Megas","tipo_sede":"SAC"},{"sede":"Sahagun","municipio":"Sahagun","departamento":"Cordoba","id_enlace":"DS-00998300","proveedor":"TELEFONICA","ancho_banda":"6 Megas","tipo_sede":"Estacion"},{"sede":"San Mateo","municipio":"Chinu","departamento":"Cordoba","id_enlace":"DS-01020675","proveedor":"TELEFONICA","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Nispero","municipio":"Maria La Baja","departamento":"Bolivar","id_enlace":"DS-01020677","proveedor":"TELEFONICA","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Palo Alto","municipio":"San Onofre","departamento":"Sucre","id_enlace":"DS-01020678","proveedor":"TELEFONICA","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Bremen","municipio":"Morroa","departamento":"Sucre","id_enlace":"DS-01020679","proveedor":"TELEFONICA","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Caracoli","municipio":"Caracoli","departamento":"Atlantico","id_enlace":"DS-01541470","proveedor":"TELEFONICA","ancho_banda":"8 Megas","tipo_sede":"Estacion"},{"sede":"Arenosa","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"DS-01541471","proveedor":"TELEFONICA","ancho_banda":"20 Megas","tipo_sede":"Estacion"},{"sede":"Bogota","municipio":"Bogota","departamento":"Cundinamarca","id_enlace":"DS-01633640","proveedor":"TELEFONICA","ancho_banda":"60 Megas","tipo_sede":"SAC"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"DS-01633642","proveedor":"TELEFONICA","ancho_banda":"130 Megas","tipo_sede":"SAC"},{"sede":"Santa Catalina / KM 27","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"DS-02033131","proveedor":"TELEFONICA","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"La Mami","municipio":"Santa Marta","departamento":"Magdalena","id_enlace":"DS-02456260","proveedor":"TELEFONICA","ancho_banda":"128 Kbps","tipo_sede":"Valvula"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"DS-02900854","proveedor":"TELEFONICA","ancho_banda":"IP FIJAS PPAL","tipo_sede":"SAC"},{"sede":"Bogota","municipio":"Bogota","departamento":"Cundinamarca","id_enlace":"DS-02900855","proveedor":"TELEFONICA","ancho_banda":"IP FIJAS BTA","tipo_sede":"SAC"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"DSR-3597819","proveedor":"TELEFONICA","ancho_banda":"600 Megas","tipo_sede":"SAC"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"DSR-3718842","proveedor":"TELEFONICA","ancho_banda":"IP FIJAS PPAL","tipo_sede":"SAC"},{"sede":"Heroica","municipio":"Cartagena","departamento":"Bolivar","id_enlace":"DSR-3721013","proveedor":"TELEFONICA","ancho_banda":"20 Megas","tipo_sede":"Estacion"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"DSR-3722405","proveedor":"TELEFONICA","ancho_banda":"130 Megas","tipo_sede":"SAC"},{"sede":"Sincelejo","municipio":"Sincelejo","departamento":"Sucre","id_enlace":"DSR-3722412","proveedor":"TELEFONICA","ancho_banda":"20 Megas","tipo_sede":"SAC"},{"sede":"Toluviejo","municipio":"Tolu","departamento":"Sucre","id_enlace":"PRE0000233","proveedor":"CLARO","ancho_banda":"1 TB","tipo_sede":"Valvula"},{"sede":"Palomino","municipio":"Palomino","departamento":"Guajira","id_enlace":"PRE0000235","proveedor":"CLARO","ancho_banda":"1 TB","tipo_sede":"Valvula"},{"sede":"Ballena","municipio":"Riohacha","departamento":"Guajira","id_enlace":"PRE0000236","proveedor":"CLARO","ancho_banda":"1 TB","tipo_sede":"Valvula"},{"sede":"Deceval","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0001","proveedor":"CLARO","ancho_banda":"128 Kbps","tipo_sede":"Valvula"},{"sede":"Palomino","municipio":"Palomino","departamento":"Guajira","id_enlace":"PRE0002","proveedor":"CLARO","ancho_banda":"10 Megas","tipo_sede":"Estacion"},{"sede":"Mamonal","municipio":"Cartagena","departamento":"Bolivar","id_enlace":"PRE0004","proveedor":"CLARO","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Cordialidad","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0006","proveedor":"CLARO","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Arenosa","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0008","proveedor":"CLARO","ancho_banda":"20 Megas","tipo_sede":"Estacion"},{"sede":"Sincelejo","municipio":"Sincelejo","departamento":"Sucre","id_enlace":"PRE0011","proveedor":"CLARO","ancho_banda":"8 Megas","tipo_sede":"SAC"},{"sede":"Triara","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0018","proveedor":"CLARO","ancho_banda":"100 Megas","tipo_sede":"SAC"},{"sede":"Triara","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0025","proveedor":"CLARO","ancho_banda":"60 Megas","tipo_sede":"SAC"},{"sede":"Sahagun","municipio":"Sahagun","departamento":"Cordoba","id_enlace":"PRE0035","proveedor":"CLARO","ancho_banda":"4 Megas","tipo_sede":"Estacion"},{"sede":"Triara","municipio":"Triara","departamento":"Atlantico","id_enlace":"PRE0037","proveedor":"CLARO","ancho_banda":"-","tipo_sede":"SAC"},{"sede":"Caracoli","municipio":"Caracoli","departamento":"Atlantico","id_enlace":"PRE0040","proveedor":"CLARO","ancho_banda":"10 Megas","tipo_sede":"Estacion"},{"sede":"Km 30","municipio":"Santa Marta","departamento":"Magdalena","id_enlace":"PRE0041","proveedor":"CLARO","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Bullerengue","municipio":"Sabanalarga","departamento":"Atlantico","id_enlace":"PRE0042","proveedor":"CLARO","ancho_banda":"63 Kbps","tipo_sede":"Valvula"},{"sede":"Via 40","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0044","proveedor":"CLARO","ancho_banda":"64 Kbps","tipo_sede":"Valvula"},{"sede":"Ballena","municipio":"Riohacha","departamento":"Guajira","id_enlace":"PRE0048","proveedor":"CLARO","ancho_banda":"2 Megas","tipo_sede":"Valvula"},{"sede":"Riohacha","municipio":"Riohacha","departamento":"Guajira","id_enlace":"PRE0049","proveedor":"CLARO","ancho_banda":"10 Megas","tipo_sede":"SAC"},{"sede":"Filadelfia","municipio":"San Onofre","departamento":"Sucre","id_enlace":"PRE0050","proveedor":"CLARO","ancho_banda":"4 Megas","tipo_sede":"Estacion"},{"sede":"Jobo","municipio":"San Marcos","departamento":"Cordoba","id_enlace":"PRE0051","proveedor":"CLARO","ancho_banda":"6 Megas","tipo_sede":"Valvula"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0057","proveedor":"CLARO","ancho_banda":"600 Megas","tipo_sede":"SAC"},{"sede":"Principal","municipio":"Barranquilla","departamento":"Atlantico","id_enlace":"PRE0058","proveedor":"CLARO","ancho_banda":"400 Megas","tipo_sede":"SAC"},{"sede":"La Variante","municipio":"Cartagena","departamento":"Bolivar","id_enlace":"PRE0060","proveedor":"CLARO","ancho_banda":"1 Mega","tipo_sede":"Valvula"},{"sede":"Majagua","municipio":"Sincelejo","departamento":"Sucre","id_enlace":"PRE0090","proveedor":"CLARO","ancho_banda":"1 Mbps","tipo_sede":"Valvula"},{"sede":"Bogota","municipio":"Bogota","departamento":"Cundinamarca","id_enlace":"PRE0093","proveedor":"CLARO","ancho_banda":"300 Mbps","tipo_sede":"SAC"},{"sede":"Caracoli","municipio":"Caracoli","departamento":"Atlantico","id_enlace":"PRE0100","proveedor":"CLARO","ancho_banda":"1 Mbps","tipo_sede":"Estacion"},{"sede":"Principal","municipio":"Bogota","departamento":"Cundinamarca","id_enlace":"YAV0001","proveedor":"CLARO","ancho_banda":"30 Megas","tipo_sede":"SAC"}]};
+
+/* ── STORAGE ── */
+const SK='scada_v4';
+const cl=o=>JSON.parse(JSON.stringify(o));
+function loadSt(){
+  try{
+    const raw=localStorage.getItem(SK);
+    if(raw){
+      const s=JSON.parse(raw);
+      return{
+        segmentos:   s.segmentos   ??cl(BASE.segmentos),
+        dispositivos:s.dispositivos??cl(BASE.dispositivos),
+        nuevas:      s.nuevas      ??cl(BASE.nuevas),
+        estaciones:  s.estaciones  ??cl(BASE.estaciones),
+        enlacesTM:   s.enlacesTM   ??cl(BASE.enlacesTM),
+        enlacesPMG:  s.enlacesPMG  ??cl(BASE.enlacesPMG),
+      };
+    }
+  }catch(e){console.warn('loadSt',e)}
+  return cl(BASE);
+}
+function saveSt(){
+  try{
+    localStorage.setItem(SK,JSON.stringify(ST));
+    updStorStatus(true);
+    toast('Guardado ✓','tok');
+  }catch(e){toast('Error al guardar: '+e.message,'terr')}
+}
+function clearLocal(){
+  if(!confirm('¿Restaurar todos los datos al estado base del Excel?\n\nSe perderán los cambios guardados localmente.'))return;
+  localStorage.removeItem(SK);
+  ST=cl(BASE);
+  refreshAll();
+  toast('Datos restaurados al estado base ✓','tok');
+}
+let ST=loadSt();
+
+function updStorStatus(saved){
+  const el=document.getElementById('storStatus');
+  if(!el)return;
+  const dot=el.querySelector('.stor-dot');
+  const lbl=el.querySelector('.stor-lbl');
+  if(saved){
+    dot.style.background='var(--ok)';
+    dot.style.boxShadow='0 0 6px rgba(46,204,113,.5)';
+    lbl.textContent='Guardado localmente';
+  }
+}
+
+/* ── HELPERS VISUALES ── */
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function empB(v){
+  const e=(v||'').toLowerCase();
+  if(e.includes('promigas'))    return`<span class="be pm">${v}</span>`;
+  if(e.includes('transmetano')) return`<span class="be tm">${v}</span>`;
+  if(e.includes('spec'))        return`<span class="be sp">${v}</span>`;
+  if(e.includes('promioriente'))return`<span class="be po">${v}</span>`;
+  if(e.includes('promisol'))    return`<span class="be ps">${v}</span>`;
+  return`<span class="be pm">${v||'—'}</span>`;
+}
+function provB(v){
+  const u=(v||'').toUpperCase();
+  if(u.includes('TELEF'))                     return`<span class="be bt">${v}</span>`;
+  if(u.includes('CLARO'))                     return`<span class="be bc">${v}</span>`;
+  if(u.includes('MC')||u.includes('COMM'))    return`<span class="be bm">${v}</span>`;
+  if(u.includes('LIBERT')||u.includes('LIBE'))return`<span class="be bl">${v}</span>`;
+  return`<span class="be bx">${v||'—'}</span>`;
+}
+function tipB(t){
+  const u=(t||'').toUpperCase();
+  if(u==='RTU')          return`<span class="tp tp-rtu">RTU</span>`;
+  if(u==='PC')           return`<span class="tp tp-pc">PC</span>`;
+  if(u==='RADIO')        return`<span class="tp tp-rad">RADIO</span>`;
+  if(u==='PLC')          return`<span class="tp tp-plc">PLC</span>`;
+  if(u==='CONCENTRADOR') return`<span class="tp tp-con">CONC.</span>`;
+  if(u==='ULTRASONICO')  return`<span class="tp tp-usm">USM</span>`;
+  return`<span class="tp tp-def">${t||'—'}</span>`;
+}
+function acBtn(sec,i){
+  return`<td><div class="act">
+    <button class="eb" title="Editar" onclick="openEdit('${sec}',${i})">✏</button>
+    <button class="db" title="Eliminar" onclick="delRec('${sec}',${i})">🗑</button>
+  </div></td>`;
+}
+const noR=cols=>`<tr class="no-res"><td colspan="${cols}">Sin resultados para esta búsqueda</td></tr>`;
+
+/* ── RENDER SEGMENTOS ── */
+function renderSeg(rows){
+  document.getElementById('cSeg').textContent=rows.length;
+  const b=document.getElementById('bodySeg');
+  if(!rows.length){b.innerHTML=noR(7);return}
+  b.innerHTML=rows.map(r=>`<tr>
+    <td class="n">${r._i+1}</td>
+    <td><strong>${esc(r.nombre_estacion)}</strong></td>
+    <td class="ip">${esc(r.ip_red)}</td>
+    <td class="ip2">${esc(r.mascara)}</td>
+    <td>${empB(r.empresa)}</td>
+    <td style="text-align:center;color:var(--tx2);font-size:.76rem;font-weight:600">${r.vlan||'11'}</td>
+    ${acBtn('segmentos',r._i)}
+  </tr>`).join('');
+}
+
+/* ── RENDER DISPOSITIVOS ── */
+function renderDisp(rows){
+  document.getElementById('cDisp').textContent=rows.length;
+  const b=document.getElementById('bodyDisp');
+  if(!rows.length){b.innerHTML=noR(9);return}
+  b.innerHTML=rows.map(r=>`<tr>
+    <td class="n">${r._i+1}</td>
+    <td class="ip">${esc(r.ip)}</td>
+    <td><strong style="font-size:.8rem">${esc(r.equipo||'—')}</strong></td>
+    <td>${tipB(r.tipo_dispositivo)}</td>
+    <td class="ip2">${esc(r.gateway||'—')}</td>
+    <td class="ip2" style="font-size:.72rem">${esc(r.nhp||'—')}</td>
+    <td style="font-size:.72rem;color:var(--tx2)">${esc(r.device_id||'—')}</td>
+    <td>${provB(r.proveedor)}</td>
+    ${acBtn('dispositivos',r._i)}
+  </tr>`).join('');
+}
+
+/* ── RENDER NUEVAS IPs ── */
+function renderNuev(rows){
+  document.getElementById('cNuev').textContent=rows.length;
+  const b=document.getElementById('bodyNuev');
+  if(!rows.length){b.innerHTML=noR(8);return}
+  b.innerHTML=rows.map(r=>`<tr>
+    <td class="n">${r._i+1}</td>
+    <td><strong>${esc(r.sede||'—')}</strong></td>
+    <td class="ip">${esc(r.ip)}</td>
+    <td class="ip2">${esc(r.mascara||'—')}</td>
+    <td class="ip2">${esc(r.gateway||'—')}</td>
+    <td>${tipB(r.equipo)}</td>
+    <td style="font-size:.72rem;color:var(--tx2)">${esc(r.observacion||'—')}</td>
+    ${acBtn('nuevas',r._i)}
+  </tr>`).join('');
+}
+
+/* ── RENDER ENLACES ── */
+function renderEnl(rows,bId){
+  const sec=bId==='bodyTM'?'enlacesTM':'enlacesPMG';
+  const cId=bId==='bodyTM'?'cTM':'cPMG';
+  document.getElementById(cId).textContent=rows.length;
+  const b=document.getElementById(bId);
+  if(!rows.length){b.innerHTML=noR(9);return}
+  b.innerHTML=rows.map(r=>`<tr>
+    <td class="n">${r._i+1}</td>
+    <td><strong>${esc(r.sede)}</strong></td>
+    <td style="color:var(--tx2)">${esc(r.municipio||'—')}</td>
+    <td style="color:var(--tx3);font-size:.72rem">${esc(r.departamento||'—')}</td>
+    <td><span class="id-t">${esc(r.id_enlace)}</span></td>
+    <td>${provB(r.proveedor)}</td>
+    <td style="color:var(--tx2);font-size:.75rem">${esc(r.ancho_banda||'—')}</td>
+    <td style="font-size:.72rem;color:var(--tx2)">${esc(r.tipo_sede||'—')}</td>
+    ${acBtn(sec,r._i)}
+  </tr>`).join('');
+}
+
+/* ── RENDER ESTACIONES ── */
+function renderEst(rows){
+  document.getElementById('cEst').textContent=rows.length;
+  const b=document.getElementById('bodyEst');
+  if(!rows.length){b.innerHTML=noR(7);return}
+  b.innerHTML=rows.map(r=>`<tr>
+    <td class="n">${r._i+1}</td>
+    <td><strong>${esc(r.sede)}</strong></td>
+    <td class="ip">${esc(r.ip_router)}</td>
+    <td class="ip">${esc(r.ip_rtu||'—')}</td>
+    <td class="ip" style="color:var(--or)">${esc(r.ip_conversor||'—')}</td>
+    <td>${empB(r.empresa||'TRANSMETANO')}</td>
+    ${acBtn('estaciones',r._i)}
+  </tr>`).join('');
+}
+
+/* ── FILTROS ── */
+function wi(a){return a.map((r,i)=>Object.assign({_i:i},r))}
+const gv=id=>(document.getElementById(id)?.value||'').toLowerCase().trim();
+
+function fSeg(){
+  const q=gv('qSeg'),emp=document.getElementById('fES').value;
+  const d=wi(ST.segmentos).filter(r=>{
+    const m=!q||(r.nombre_estacion+' '+r.ip_red+' '+r.empresa+' '+r.vlan).toLowerCase().includes(q);
+    return m&&(!emp||r.empresa===emp);
+  });
+  document.getElementById('tSeg').textContent=ST.segmentos.length;
+  renderSeg(d);
+}
+function fDisp(){
+  const q=gv('qD'),tipo=document.getElementById('fTD').value;
+  const d=wi(ST.dispositivos).filter(r=>{
+    const m=!q||(r.ip+' '+r.equipo+' '+(r.tipo_dispositivo||'')+' '+(r.proveedor||'')+' '+(r.gateway||'')+' '+(r.device_id||'')).toLowerCase().includes(q);
+    return m&&(!tipo||r.tipo_dispositivo===tipo);
+  });
+  document.getElementById('tDisp').textContent=ST.dispositivos.length;
+  renderDisp(d);
+}
+function fNuev(){
+  const q=gv('qN');
+  const d=wi(ST.nuevas).filter(r=>!q||(r.ip+' '+(r.sede||'')+' '+(r.equipo||'')+' '+(r.observacion||'')).toLowerCase().includes(q));
+  document.getElementById('tNuev').textContent=ST.nuevas.length;
+  renderNuev(d);
+}
+function fTM(){
+  const q=gv('qTM'),pv=document.getElementById('fPTM').value,tp=document.getElementById('fTTM').value;
+  const d=wi(ST.enlacesTM).filter(r=>{
+    const m=!q||(r.sede+' '+(r.municipio||'')+' '+r.id_enlace+' '+r.proveedor+' '+(r.ancho_banda||'')).toLowerCase().includes(q);
+    return m&&(!pv||r.proveedor===pv)&&(!tp||r.tipo_sede===tp);
+  });
+  document.getElementById('tTM').textContent=ST.enlacesTM.length;
+  renderEnl(d,'bodyTM');
+}
+function fPMG(){
+  const q=gv('qPMG'),pv=document.getElementById('fPPMG').value,tp=document.getElementById('fTPMG').value;
+  const d=wi(ST.enlacesPMG).filter(r=>{
+    const m=!q||(r.sede+' '+(r.municipio||'')+' '+r.id_enlace+' '+r.proveedor+' '+(r.ancho_banda||'')).toLowerCase().includes(q);
+    return m&&(!pv||r.proveedor===pv)&&(!tp||r.tipo_sede===tp);
+  });
+  document.getElementById('tPMG').textContent=ST.enlacesPMG.length;
+  renderEnl(d,'bodyPMG');
+}
+function fEst(){
+  const q=gv('qE');
+  const d=wi(ST.estaciones).filter(r=>!q||(r.sede+' '+r.ip_router+' '+(r.ip_rtu||'')+' '+(r.ip_conversor||'')).toLowerCase().includes(q));
+  document.getElementById('tEst').textContent=ST.estaciones.length;
+  renderEst(d);
+}
+function rst(...ids){ids.forEach(id=>{const e=document.getElementById(id);if(e)e.value=''})}
+
+/* ── BÚSQUEDA GLOBAL ── */
+function globalSearch(){
+  const q=(document.getElementById('gSearch').value||'').toLowerCase().trim();
+  if(!q)return;
+  /* Buscar en todas las secciones y abrir la tab con más resultados */
+  const counts={
+    't-seg':  ST.segmentos.filter(r=>(r.nombre_estacion+r.ip_red+r.empresa).toLowerCase().includes(q)).length,
+    't-disp': ST.dispositivos.filter(r=>(r.ip+r.equipo+(r.tipo_dispositivo||'')).toLowerCase().includes(q)).length,
+    't-nuev': ST.nuevas.filter(r=>(r.ip+(r.sede||'')).toLowerCase().includes(q)).length,
+    't-tm':   ST.enlacesTM.filter(r=>(r.sede+r.id_enlace+r.proveedor).toLowerCase().includes(q)).length,
+    't-pmg':  ST.enlacesPMG.filter(r=>(r.sede+r.id_enlace+r.proveedor).toLowerCase().includes(q)).length,
+    't-est':  ST.estaciones.filter(r=>(r.sede+r.ip_router).toLowerCase().includes(q)).length,
+  };
+  const best=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  if(best&&best[1]>0){
+    /* Activar esa tab */
+    document.querySelectorAll('.tab-cnt').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(best[0]).classList.add('active');
+    document.querySelector(`[data-tab="${best[0]}"]`)?.classList.add('active');
+    /* Propagar búsqueda al input de esa tab */
+    const qMap={
+      't-seg':'qSeg','t-disp':'qD','t-nuev':'qN',
+      't-tm':'qTM','t-pmg':'qPMG','t-est':'qE'
+    };
+    const finput=document.getElementById(qMap[best[0]]);
+    if(finput){finput.value=q;finput.dispatchEvent(new Event('input'))}
+  }
+}
+
+/* ── MODAL CONFIG ── */
+const FORMS={
+  seg:{sec:'segmentos',title:'Segmento de Red',icon:'📡',fields:[
+    {k:'nombre_estacion',l:'Nombre Estación / Sede',req:1,ph:'Ej: Ballena, Heroica…'},
+    {k:'ip_red',l:'Dirección IP de Red',req:1,ph:'172.30.X.X'},
+    {k:'mascara',l:'Máscara de Subred',def:'255.255.255.240',ph:'255.255.255.240'},
+    {k:'empresa',l:'Empresa Operadora',type:'sel',opts:['Promigas','Transmetano','Promioriente','Promisol','SPEC']},
+    {k:'vlan',l:'VLAN ID',def:'11',ph:'11'},
+  ]},
+  disp:{sec:'dispositivos',title:'Dispositivo IP',icon:'💻',fields:[
+    {k:'ip',l:'Dirección IP',req:1,ph:'172.30.X.X'},
+    {k:'equipo',l:'Nombre Equipo / Host',req:1,ph:'CPCOPR01, RTU_BALLENA…'},
+    {k:'mascara',l:'Máscara',def:'255.255.255.240'},
+    {k:'gateway',l:'Gateway / Puerta Enlace',ph:'172.30.X.X'},
+    {k:'nhp',l:'NHP (Next-Hop IP)',ph:'172.30.1.13'},
+    {k:'tipo_dispositivo',l:'Tipo de Dispositivo',type:'sel',opts:['RTU','PC','RADIO','CONCENTRADOR','PLC','ULTRASONICO','RESERVA']},
+    {k:'device_id',l:'Device ID / CW Slot',ph:'01_CW_Ballena'},
+    {k:'proveedor',l:'Proveedor de Enlace',ph:'CLARO / TELEFONICA…'},
+  ]},
+  nuev:{sec:'nuevas',title:'IP Nueva / Pendiente',icon:'🆕',fields:[
+    {k:'ip',l:'Dirección IP',req:1,ph:'172.30.X.X'},
+    {k:'sede',l:'Sede / Sitio Referencia',req:1,ph:'BULLERENGUE, KM 57…'},
+    {k:'mascara',l:'Máscara',def:'255.255.255.240'},
+    {k:'gateway',l:'Gateway',ph:'172.30.X.X'},
+    {k:'equipo',l:'Tipo Dispositivo / Equipo',ph:'RTU, RADIO MÁSTER…'},
+    {k:'observacion',l:'Observación / Solicitud',ph:'SOLICITUD IP / SITIO REFERENCIA'},
+  ]},
+  enlTM:{sec:'enlacesTM',title:'Enlace TRANSMETANO',icon:'🔗',fields:[
+    {k:'sede',l:'Sede',req:1,ph:'Maceo, Guarne…'},
+    {k:'municipio',l:'Municipio',ph:'Maceo, Guarne…'},
+    {k:'departamento',l:'Departamento',ph:'Antioquia'},
+    {k:'id_enlace',l:'ID de Servicio / Enlace',req:1,ph:'DS-XXXXXXXX / TDN-XXXX'},
+    {k:'proveedor',l:'Proveedor',type:'sel',opts:['TELEFONICA','CLARO','Mediacommerce','Liberty','AXXESS']},
+    {k:'ancho_banda',l:'Ancho de Banda',ph:'512 Kbps / 10 Megas'},
+    {k:'tipo_sede',l:'Tipo de Sede',type:'sel',opts:['Valvula','SAC','CPC','Bodega','Estacion']},
+  ]},
+  enlPMG:{sec:'enlacesPMG',title:'Enlace PROMIGAS',icon:'🔗',fields:[
+    {k:'sede',l:'Sede',req:1,ph:'Caracoli, Ballena…'},
+    {k:'municipio',l:'Municipio',ph:'Riohacha, Sahagun…'},
+    {k:'departamento',l:'Departamento',ph:'Atlantico, Guajira…'},
+    {k:'id_enlace',l:'ID de Servicio / Enlace',req:1,ph:'PRE0000XXX / DSR-XXXXXXX'},
+    {k:'proveedor',l:'Proveedor',type:'sel',opts:['CLARO','TELEFONICA','Liberty','Medicommerce','AXXESS']},
+    {k:'ancho_banda',l:'Ancho de Banda',ph:'64 Kbps / 20 Megas'},
+    {k:'tipo_sede',l:'Tipo de Sede',type:'sel',opts:['Valvula','Estacion','SAC','BACKUP','CPC']},
+  ]},
+  est:{sec:'estaciones',title:'Estación TRANSMETANO',icon:'🏭',fields:[
+    {k:'sede',l:'Nombre Sede',req:1,ph:'Barbosa, Guarne…'},
+    {k:'ip_router',l:'IP Router',req:1,ph:'172.30.14.X'},
+    {k:'ip_rtu',l:'IP RTU / Conversor Serial',ph:'172.30.14.X'},
+    {k:'ip_conversor',l:'IP Conversor Lantronix',ph:'172.30.14.X'},
+    {k:'empresa',l:'Empresa',def:'TRANSMETANO',ph:'TRANSMETANO'},
+  ]},
+};
+let _ctx={fk:'',idx:-1};
+
+function openAdd(fk){_ctx={fk,idx:-1};_buildMo(FORMS[fk],{})}
+function openEdit(sec,idx){
+  const fk=Object.keys(FORMS).find(k=>FORMS[k].sec===sec)||sec;
+  _ctx={fk,idx};
+  _buildMo(FORMS[fk],ST[sec][idx]||{});
+}
+function _buildMo(f,data){
+  document.getElementById('mTitle').innerHTML=`${f.icon} ${(_ctx.idx===-1?'Agregar ':'Editar ')}<span style="color:var(--ac)">${f.title}</span>`;
+  let h='';
+  f.fields.forEach(fd=>{
+    const val=data[fd.k]!==undefined?data[fd.k]:(fd.def||'');
+    const req=fd.req?'<span class="req">*</span>':'';
+    if(fd.type==='sel'){
+      h+=`<div class="fg"><label>${fd.l} ${req}</label>
+        <select id="mf_${fd.k}">
+          ${(fd.opts||[]).map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}
+        </select></div>`;
+    }else{
+      h+=`<div class="fg"><label>${fd.l} ${req}</label>
+        <input id="mf_${fd.k}" value="${esc(val)}" placeholder="${fd.ph||fd.l}"></div>`;
+    }
+  });
+  document.getElementById('mBody').innerHTML=h;
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.querySelector('#mBody input,#mBody select')?.focus(),90);
+}
+function closeMo(){document.getElementById('modal').classList.remove('open')}
+
+function saveRec(){
+  const f=FORMS[_ctx.fk];
+  const rec={};
+  for(const fd of f.fields){
+    const el=document.getElementById('mf_'+fd.k);
+    if(!el)continue;
+    const v=el.value.trim();
+    if(fd.req&&!v){toast('⚠ Campo requerido: '+fd.l,'twarn');el.focus();return}
+    rec[fd.k]=v;
+  }
+  const sec=f.sec;
+  if(_ctx.idx===-1){
+    ST[sec].push(rec);
+    toast('Registro agregado ✓','tok');
+  }else{
+    ST[sec][_ctx.idx]=Object.assign(ST[sec][_ctx.idx]||{},rec);
+    toast('Registro actualizado ✓','tok');
+  }
+  saveSt();closeMo();refreshAll();
+}
+
+function delRec(sec,idx){
+  const r=ST[sec][idx];
+  const nm=r?.nombre_estacion||r?.ip||r?.sede||r?.id_enlace||'este registro';
+  if(!confirm(`¿Eliminar "${nm}"?`))return;
+  ST[sec].splice(idx,1);
+  saveSt();refreshAll();
+  toast('Eliminado ✓','terr');
+}
+
+/* ── REFRESH GLOBAL ── */
+function refreshAll(){
+  fSeg();fDisp();fNuev();fTM();fPMG();fEst();
+  const L=[
+    ST.segmentos.length,ST.dispositivos.length,ST.nuevas.length,
+    ST.enlacesTM.length,ST.enlacesPMG.length,ST.estaciones.length
+  ];
+  const kIDs=['kSeg','kDisp','kNuev','kTM','kPMG','kEst'];
+  const tIDs=['tbSeg','tbDisp','tbNuev','tbTM','tbPMG','tbEst'];
+  kIDs.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=L[i]});
+  tIDs.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=L[i]});
+}
+
+/* ── TABS ── */
+function sw(e,id){
+  e.preventDefault();
+  document.querySelectorAll('.tab-cnt').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+}
+
+/* ── EXPORT ── */
+function xJSON(sec){
+  const b=new Blob([JSON.stringify(ST[sec],null,2)],{type:'application/json;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=sec+'_scada_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  toast('JSON descargado ✓','tok');
+}
+function xCSV(){
+  const ac=document.querySelector('.tab-cnt.active');if(!ac)return;
+  const tbl=ac.querySelector('table');if(!tbl)return;
+  const rows=[...tbl.querySelectorAll('tr')];
+  const csv=rows.map(r=>[...r.querySelectorAll('th,td')].slice(0,-1)
+    .map(c=>'"'+c.innerText.trim().replace(/"/g,'""')+'"').join(',')).join('\n');
+  const b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='tabla_scada_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  toast('CSV descargado ✓','tok');
+}
+
+/* ── TOAST ── */
+let _tt;
+function toast(msg,cls='tok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show '+cls;
+  clearTimeout(_tt);_tt=setTimeout(()=>el.className='toast',2800);
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  refreshAll();
+  /* Marcar estado storage */
+  if(localStorage.getItem(SK)) updStorStatus(true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMo()});
+  document.getElementById('modal').addEventListener('click',function(e){
+    if(e.target===this)closeMo();
+  });
+  /* Enter en búsqueda global */
+  document.getElementById('gSearch')?.addEventListener('keydown',e=>{
+    if(e.key==='Enter') globalSearch();
+  });
+});
+
+</script>
+</body>
+</html>
